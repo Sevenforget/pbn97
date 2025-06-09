@@ -1,0 +1,85 @@
+import { fetchPostFromApi } from "@/lib/api-service";
+import { getCurrentProjectDomain } from "@/lib/domain-mapper";
+import { ArrowLeft, Calendar, User } from "lucide-react";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+export default async function PostPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const postId = Number.parseInt(id);
+
+  if (isNaN(postId) || postId < 0) {
+    notFound();
+  }
+
+  try {
+    // 현재 프로젝트의 도메인 자동 감지
+    const communityUrl = "https://access-tango.com"; // 하드코딩된 도메인 (pbn-domains.json 기반)
+
+    // API에서 게시물 데이터 가져오기
+    const post = await fetchPostFromApi(communityUrl, postId);
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <Link
+            href="/"
+            className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-8 transition-colors"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            모든 글 보기
+          </Link>
+
+          <article className="bg-white rounded-lg shadow-lg p-6 md:p-8 max-w-4xl mx-auto">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              {post.title}
+            </h1>
+
+            <div className="flex flex-wrap items-center gap-4 mb-8 text-gray-500">
+              <div className="flex items-center">
+                <Calendar className="h-4 w-4 mr-1" />
+                <time>
+                  {new Date(post.date || new Date()).toLocaleDateString(
+                    "ko-KR"
+                  )}
+                </time>
+              </div>
+
+              <div className="flex items-center">
+                <User className="h-4 w-4 mr-1" />
+                <span>{post.author || "관리자"}</span>
+              </div>
+
+              {post.tags && post.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {post.tags.map((tag, i) => (
+                    <span
+                      key={i}
+                      className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="prose prose-lg max-w-none">
+              <p
+                className="whitespace-pre-line"
+                dangerouslySetInnerHTML={{ __html: post.content }}
+              ></p>
+            </div>
+          </article>
+        </div>
+      </div>
+    );
+  } catch (error) {
+    console.error("게시물 로드 실패:", error);
+    notFound();
+  }
+}
